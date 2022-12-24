@@ -1,0 +1,83 @@
+name: ci
+
+on:
+  push:
+    branches:
+      - main
+
+  schedule:
+    - cron:  '30 5 * * *'
+
+jobs:
+  docker:
+    strategy:
+      matrix:
+        version: ['stable', 'ltr']
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Get version details
+      run: |
+        python ./scripts/get_latest_qgis_versions.py --release=${{ matrix.version }} --github_token=${{ secrets.GITHUB_TOKEN }} >> $GITHUB_ENV
+
+    - name: Check if image is already built
+      run: |
+        TOKEN=$(curl -u $GITHUB_ACTOR:${{ secrets.GITHUB_TOKEN }} https://ghcr.io/token\?scope\="qgis-slim:qgis-slim/qgis-slim:pull" | jq -r .token)
+        if curl --head --fail -H "Authorization: Bearer $TOKEN" https://ghcr.io/v2/opengisch/qgis-slim/manifests/${{ env.QGIS_VERSION_PATCH }}; then
+          echo "DO_BUILD=false" >> $GITHUB_ENV
+        else
+          echo "DO_BUILD=true" >> $GITHUB_ENV
+        fi
+
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+
+    - name: Login to Docker Registry
+      uses: docker/login-action@v2
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Build base
+      uses: docker/build-push-action@v3
+      with:
+        context: .
+        push: false
+        target: builder
+        build-args: ${{ env.QGIS_VERSION_TAG }}
+        cache-to: type=local,dest=cache
+
+    - name: Build and push release
+      uses: docker/build-push-action@v3
+      if: env.DO_BUILD == 'true'
+      with:
+        context: .
+        push: true
+        target: release
+        build-args: ${{ env.QGIS_VERSION_TAG }}
+        cache-from: type=local,src=cache
+        tags: |
+          ghcr.io/opengisch/qgis-slim:latest
+          ghcr.io/opengisch/qgis-slim:${{ matrix.version }}
+          ghcr.io/opengisch/qgis-slim:${{ env.QGIS_VERSION_SHORT }}
+          ghcr.io/opengisch/qgis-slim:${{ env.QGIS_VERSION_PATCH }}
+
+    - name: Build and push debug
+      uses: docker/build-push-action@v3
+      if: env.DO_BUILD == 'true'
+      with:
+        context: .
+        push: true
+        target: debug
+        build-args: ${{ env.QGIS_VERSION_TAG }}
+        cache-from: type=local,src=cache
+        tags: |
+          ghcr.io/opengisch/qgis-slim-debug:latest
+          ghcr.io/opengisch/qgis-slim-debug:${{ matrix.version }}
+          ghcr.io/opengisch/qgis-slim-debug:${{ env.QGIS_VERSION_SHORT }}
+          ghcr.io/opengisch/qgis-slim-debug:${{ env.QGIS_VERSION_PATCH }}
+

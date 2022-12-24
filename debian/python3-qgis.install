@@ -1,0 +1,3 @@
+usr/lib/python*/*-packages/qgis/analysis/__init__.py
+usr/lib/python*/*-packages/qgis/core/__init__.py
+usr/lib/python*/*-packages/qgis/*.so

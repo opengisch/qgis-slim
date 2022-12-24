@@ -1,0 +1,301 @@
+#!/usr/bin/make -f
+# -*- makefile -*-
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+
+# This has to be exported to make some magic below work.
+export DH_OPTIONS
+
+# Enable hardening build flags
+export DEB_BUILD_MAINT_OPTIONS=hardening=+all
+
+include /usr/share/dpkg/pkg-info.mk
+
+# These are used for cross-compiling and for saving the configure script
+# from having to guess our platform (since we know it already)
+DEB_HOST_GNU_TYPE   ?= $(shell dpkg-architecture -qDEB_HOST_GNU_TYPE)
+DEB_BUILD_GNU_TYPE  ?= $(shell dpkg-architecture -qDEB_BUILD_GNU_TYPE)
+DEB_BUILD_ARCH      ?= $(shell dpkg-architecture -qDEB_BUILD_ARCH)
+DEB_BUILD_MULTIARCH ?= $(shell dpkg-architecture -qDEB_BUILD_MULTIARCH)
+
+DEB_TEST_TARGET ?= Experimental
+
+QGIS_BUILDDIR ?= debian/build
+
+export QGIS_TEST_ACCEPT_GITSTATUS_CHECK_FAILURE=1
+export QT_SELECT=5
+
+QGIS_VERSION=$(shell echo $(DEB_VERSION_UPSTREAM) | sed -e 's/\+.*//')
+
+ifeq (,$(DIST))
+	DISTRIBUTION := $(DEB_DISTRIBUTION)
+else
+	DISTRIBUTION := $(DIST)
+endif
+
+ifneq (,$(findstring -oracle,$(DISTRIBUTION)))
+	DISTRIBUTION := $(subst -oracle,,$(DISTRIBUTION))
+	WITH_ORACLE=1
+endif
+
+QT_PLUGINS_DIR = lib/$(DEB_BUILD_MULTIARCH)/qt5/plugins
+
+ifneq ($(DISTRIBUTION),$(findstring $(DISTRIBUTION),"bullseye focal jammy kinetic lunar"))
+	DISTRIBUTION := bullseye
+endif
+
+DEB_BUILD_NAME ?= $(DISTRIBUTION)-$(DEB_BUILD_ARCH)
+
+QGIS_MAJOR=$(shell sed -ne 's/SET(CPACK_PACKAGE_VERSION_MAJOR "\([0-9]*\)")/\1/ip' CMakeLists.txt)
+QGIS_MINOR=$(shell sed -ne 's/SET(CPACK_PACKAGE_VERSION_MINOR "\([0-9]*\)")/\1/ip' CMakeLists.txt)
+QGIS_PATCH=$(shell sed -ne 's/SET(CPACK_PACKAGE_VERSION_PATCH "\([0-9]*\)")/\1/ip' CMakeLists.txt)
+QGIS_ABI=$(QGIS_MAJOR).$(QGIS_MINOR).$(QGIS_PATCH)
+
+# Include percentage of started edges
+export NINJA_STATUS=[%f/%t %p]
+
+ifeq (,$(filter terse,$(DEB_BUILD_OPTIONS)))
+	NINJA_OPTS += -v
+endif
+
+ifneq (,$(filter parallel=%,$(DEB_BUILD_OPTIONS)))
+	NUMJOBS = $(patsubst parallel=%,%,$(filter parallel=%,$(DEB_BUILD_OPTIONS)))
+	MAKEFLAGS += -j$(NUMJOBS)
+	NINJA_OPTS += -j$(NUMJOBS)
+endif
+
+ifeq (,$(DISPLAY))
+TESTMAKE=xvfb-run -a -n 1 -s "-screen 0 1280x1024x24 -dpi 96" ninja $(NINJA_OPTS)
+else
+TESTMAKE=ninja $(NINJA_OPTS)
+endif
+
+PYTHON_LIBRARY=$(shell python3-config --ldflags --embed | sed -e 's,-L\(.*\) -L[^ ]* -l\([^ ]*\) .*$$,\1/lib\2.so,')
+
+CMAKE_OPTS := \
+	-G Ninja \
+	-B $(QGIS_BUILDDIR) \
+	-DBUILDNAME=$(DEB_BUILD_NAME) \
+	-DCMAKE_INSTALL_PREFIX=/usr \
+	-DBINDINGS_GLOBAL_INSTALL=TRUE \
+	-DSIP_GLOBAL_INSTALL=TRUE \
+	-DPEDANTIC=TRUE \
+	-DSERVER_SKIP_ECW=TRUE \
+	-DWITH_APIDOC=FALSE \
+	-DWITH_CUSTOM_WIDGETS=FALSE \
+	-DWITH_SERVER=FALSE \
+	-DWITH_SERVER_PLUGINS=FALSE \
+	-DWITH_QWTPOLAR=FALSE \
+	-DQT_PLUGINS_DIR=$(QT_PLUGINS_DIR) \
+	-DPYTHON_LIBRARY=$(PYTHON_LIBRARY) \
+	-DDOXYGEN_ON_DEMAND=TRUE \
+	-DWITH_QSPATIALITE=TRUE \
+	-DWITH_3D=FALSE \
+	-DGEOS_LIBRARY=/usr/lib/$(DEB_BUILD_MULTIARCH)/libgeos_c.so \
+	-DWITH_HANA=FALSE \
+	-DWITH_EPT=TRUE \
+	-DWITH_GUI=FALSE \
+	-DWITH_DESKTOP=FALSE \
+	-DENABLE_TESTS=FALSE
+
+ifneq ($(SHA),)
+	CMAKE_OPTS += -DSHA=$(SHA)
+endif
+
+ifneq (,$(findstring ;$(GRASSVER);, ";7;8;"))
+	CMAKE_OPTS += \
+		-DWITH_GRASS=FALSE \
+		-DWITH_GRASS$(GRASSVER)=FALSE
+endif
+
+ifneq (,$(findstring $(DISTRIBUTION),"sid kinetic lunar"))
+	CMAKE_OPTS += -DGDAL_LIBRARY=/usr/lib/$(DEB_BUILD_MULTIARCH)/libgdal.so
+endif
+
+ifneq (,$(findstring debug,$(DEB_BUILD_OPTIONS)))
+	CMAKE_OPTS += -DCMAKE_BUILD_TYPE=Debug
+endif
+
+CPPFLAGS := $(shell dpkg-buildflags --get CPPFLAGS)
+CFLAGS   := $(shell dpkg-buildflags --get CFLAGS) $(CPPFLAGS)
+CXXFLAGS := $(shell dpkg-buildflags --get CXXFLAGS) $(CPPFLAGS)
+LDFLAGS  := $(shell dpkg-buildflags --get LDFLAGS)
+
+ifeq (,$(findstring nostrip,$(DEB_BUILD_OPTIONS)))
+	INSTALL_PROGRAM += -s
+endif
+
+ifneq (,$(findstring noopt,$(DEB_BUILD_OPTIONS)))
+	CFLAGS += -O0
+	CXXFLAGS += -O0
+else
+	CFLAGS += -O2
+	CXXFLAGS += -O2
+endif
+
+ifneq (,$(findstring profile,$(DEB_BUILD_OPTIONS)))
+	CFLAGS += -pg
+	CXXFLAGS += -pg
+	LDFLAGS += -pg
+endif
+
+ifeq (,$(findstring debug,$(DEB_BUILD_OPTIONS)))
+	CFLAGS += -DNDEBUG
+	CXXFLAGS += -DNDEBUG
+endif
+
+CXXFLAGS += -fno-var-tracking
+
+# multi distribution support:
+# - remove lines with applicable excludes
+# - remove prefixes with applicable includes
+# - remove prefixes with not applicable excludes
+# - remove remaining comments
+
+CONTROL_EXPRESSIONS = $(DISTRIBUTION)
+
+define gentemplate
+$(2): $(1)
+	sed -r \
+		-e '/#(.+ |)!($(subst $(eval) ,|,$(CONTROL_EXPRESSIONS)))( .+|)#/d' \
+		-e 's/#([^#]+ |)($(subst $(eval) ,|,$(CONTROL_EXPRESSIONS)))( [^#]+|)#//g' \
+		-e 's/#([^#]+ |)![^#]+( [^#]*|)#//g' \
+		-e '/^#/d' \
+		-e "s/\{DEB_BUILD_GNU_TYPE\}/$(DEB_BUILD_GNU_TYPE)/g" \
+		-e "s/\{QGIS_ABI\}/$(QGIS_ABI)/g" \
+		-e "s/\{GRASS\}/$(GRASS)/g" \
+		-e "s/\{GRASSVER\}/$(GRASSVER)/g" \
+		-e "s/\{GRASSVER_QGISABI\}/$(GRASSVER)-$(QGIS_ABI)/g" \
+		$$^ >$$@
+
+templates:: $(2)
+
+templateclean::
+	rm -f $(2)
+endef
+
+$(foreach t,$(wildcard debian/*.in),$(eval $(call gentemplate,$(t),$(basename $(t)))))
+$(foreach t,$(wildcard debian/*{GRASSVER_QGIS_ABI}*),$(eval $(call gentemplate,$(t),$(subst {GRASSVER_QGIS_ABI},$(GRASSVER)-$(QGIS_ABI),$(t)))))
+$(foreach t,$(wildcard debian/*{QGIS_ABI}*),$(eval $(call gentemplate,$(t),$(subst {QGIS_ABI},$(QGIS_ABI),$(t)))))
+
+cleantemplates:
+	$(MAKE) -f debian/rules templateclean
+	$(MAKE) -f debian/rules debian/control debian/compat
+
+binary binary-arch binary-indep build build-arch build-indep clean install install-arch install-indep: templates
+	dh $@ --with python3 --parallel --builddirectory=$(QGIS_BUILDDIR)
+
+override_dh_clean: cleantemplates
+	dh_clean qgis.bin.1
+
+	-$(RM) -r $(CURDIR)/$(QGIS_BUILDDIR)/
+
+override_dh_auto_configure:
+	cmake $(CMAKE_OPTS)
+
+override_dh_auto_build:
+	ninja $(NINJA_OPTS) -C $(QGIS_BUILDDIR)
+
+override_dh_auto_test: test-stamp
+
+test-stamp:
+ifeq (,$(filter nocheck,$(DEB_BUILD_OPTIONS)))
+	# Code to run the package test suite
+	rm -f $(QGIS_BUILDDIR)/.error
+	mkdir -p debian/tmp/locale/
+	localedef -f UTF-8 -i en_US ./debian/tmp/locale/en_US.UTF-8/
+	LOCPATH=$(CURDIR)/debian/tmp/locale/ \
+	LC_ALL=en_US.UTF-8 \
+	LD_LIBRARY_PATH=$(CURDIR)/$(QGIS_BUILDDIR)/output/lib:$(LD_LIBRARY_PATH) \
+	PATH=/usr/sbin:$(PATH) \
+		$(TESTMAKE) -C $(QGIS_BUILDDIR) $(DEB_TEST_TARGET)Test || touch $(QGIS_BUILDDIR)/.error
+	# ignore submission errors
+	-$(TESTMAKE) -C $(QGIS_BUILDDIR) $(DEB_TEST_TARGET)Submit
+	# ignore the test outcome for now
+	# ! [ -f $(QGIS_BUILDDIR)/.error ]
+else
+	@echo Skipping tests.
+endif
+	touch test-stamp
+
+override_dh_auto_install:
+	DESTDIR=$(CURDIR)/debian/tmp ninja $(NINJA_OPTS) -C $(QGIS_BUILDDIR) install
+
+	# replace leaflet and jquery urls
+	perl -i -p \
+		-e 's#http://.*/leaflet.css#leaflet/leaflet.css#;s#http://.*/leaflet.js#leaflet/leaflet.js#;s#http://.*/jquery-.*.min.js#jquery-min.js#' \
+		$(CURDIR)/debian/tmp/usr/share/qgis/doc/developersmap.html
+
+	# Don't include a copy of the world.tif also included in osgearth-data
+	$(RM) $(CURDIR)/debian/tmp/usr/share/qgis/globe/world.tif
+
+	# remove extra license files
+	-find $(CURDIR)/debian/tmp/usr/share/qgis/resources/cpt-city-qgis-min/ -name COPYING.xml -delete
+	$(RM) $(CURDIR)/debian/tmp/usr/share/qgis/doc/LICENSE
+	$(RM) $(CURDIR)/debian/tmp/usr/share/qgis/python/plugins/db_manager/LICENSE
+	$(RM) $(CURDIR)/debian/tmp/usr/share/qgis/python/plugins/MetaSearch/LICENSE.txt
+	$(RM) $(CURDIR)/debian/tmp/usr/bin/test_provider_wcs
+	$(RM) $(CURDIR)/debian/tmp/usr/bin/qgis_bench
+	$(RM) $(CURDIR)/debian/tmp/usr/share/qgis/resources/wcs-servers.json
+
+	# remove documentation outside usr/share/doc
+	$(RM) $(CURDIR)/debian/tmp/usr/share/qgis/python/plugins/db_manager/README
+	$(RM) $(CURDIR)/debian/tmp/usr/share/qgis/python/plugins/db_manager/TODO
+
+	$(RM) $(CURDIR)/debian/tmp/usr/share/qgis/resources/cpt-city-qgis-min/README-qgis.txt
+	$(RM) $(CURDIR)/debian/tmp/usr/share/qgis/resources/cpt-city-qgis-min/README.txt
+
+	# Man pages are installed by dh_installman
+	$(RM) $(CURDIR)/debian/tmp/usr/man/man1/qgis.1
+
+	# Don't ship srs.db, automatically updated in postinst with crssync
+	mv $(CURDIR)/debian/tmp/usr/share/qgis/resources/srs.db $(CURDIR)/debian/tmp/usr/share/qgis/resources/srs-template.db
+
+	# Mime info
+	install -o root -g root -d $(CURDIR)/debian/tmp/usr/share/mime/packages
+	install -o root -g root -m 644 $(CURDIR)/debian/qgis.xml $(CURDIR)/debian/tmp/usr/share/mime/packages
+
+ifneq (,$(findstring $(DISTRIBUTION),"jammy kinetic lunar sid"))
+	mkdir -p $(CURDIR)/debian/libqgis-dev
+	cd $(CURDIR)/debian/tmp && find . -name "*.sip" | tar --remove-files -cf - -T - | tar -C $(CURDIR)/debian/libqgis-dev -xf - --xform 's,\./usr/lib/python./dist-packages/qgis,usr/share/sip/qgis,'
+	find $(CURDIR)/debian/tmp/ -depth -empty -type d -delete
+endif
+
+override_dh_missing:
+	dh_missing --fail-missing
+
+override_dh_install:
+	dh_install --autodest
+
+override_dh_installchangelogs:
+	dh_installchangelogs ChangeLog
+
+override_dh_installman:
+	cp qgis.1 qgis.bin.1
+
+	dh_installman -pqgis qgis.1 qgis.bin.1
+
+override_dh_installmime:
+	dh_installmime -pqgis
+
+override_dh_python3:
+	dh_python3
+ifeq (,$(findstring $(DISTRIBUTION),"jammy kinetic lunar sid"))
+	dh_sip3 -ppython3-qgis
+endif
+
+override_dh_compress:
+	dh_compress --exclude=pdf
+
+override_dh_makeshlibs:
+	dh_makeshlibs -Xlibqgis-customwidgets -- -c0 -v$(QGIS_VERSION)
+
+override_dh_shlibdeps:
+	dh_shlibdeps -l/usr/lib/$(GRASS)/lib
+
+override_dh_strip:
+	dh_strip --dbg-package=qgis-dbg
+
+override_dh_gencontrol:
+	dh_gencontrol --
