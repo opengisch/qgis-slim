@@ -48,7 +48,7 @@ jobs:
         context: .
         push: false
         target: builder
-        build-args: ${{ env.QGIS_VERSION_TAG }}
+        build-args: QGIS_VERSION=${{ env.QGIS_VERSION_TAG }}
         cache-to: type=local,dest=cache
 
     - name: Build and push release
@@ -58,7 +58,7 @@ jobs:
         context: .
         push: true
         target: release
-        build-args: ${{ env.QGIS_VERSION_TAG }}
+        build-args: QGIS_VERSION=${{ env.QGIS_VERSION_TAG }}
         cache-from: type=local,src=cache
         tags: |
           ghcr.io/opengisch/qgis-slim:latest
@@ -73,7 +73,7 @@ jobs:
         context: .
         push: true
         target: debug
-        build-args: ${{ env.QGIS_VERSION_TAG }}
+        build-args: QGIS_VERSION=${{ env.QGIS_VERSION_TAG }}
         cache-from: type=local,src=cache
         tags: |
           ghcr.io/opengisch/qgis-slim-debug:latest
