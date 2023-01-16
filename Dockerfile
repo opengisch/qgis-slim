@@ -29,3 +29,4 @@ COPY --from=builder /src/release/*.deb /src/
 COPY --from=builder /src/debug/*.deb /src/
 RUN ls /src/*.deb
 RUN (export DEBIAN_FRONTEND=noninteractive; apt-get update && apt install -y /src/*.deb && rm -rf /var/lib/apt/lists/*)
+ENV QT_QPA_PLATFORM offscreen
