@@ -12,7 +12,9 @@ jobs:
   docker:
     strategy:
       matrix:
-        version: ['stable', 'ltr']
+        version:
+        - 'ltr'
+#        - 'stable'
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
