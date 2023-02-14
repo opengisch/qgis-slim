@@ -1,6 +1,7 @@
 FROM debian:bullseye-slim AS builder
 
 ARG QGIS_VERSION=final-3_28_1
+ARG QGIS_VERSION_SHORT=3_28
 
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get -y install \
   build-essential \
@@ -13,7 +14,7 @@ WORKDIR /src
 RUN wget https://github.com/qgis/QGIS/archive/refs/tags/${QGIS_VERSION}.tar.gz
 RUN tar -xvf ${QGIS_VERSION}.tar.gz
 RUN rm QGIS-${QGIS_VERSION}/debian/control
-COPY debian/* QGIS-${QGIS_VERSION}/debian/
+COPY debian/* debian-${QGIS_VERSION_SHORT}/* QGIS-${QGIS_VERSION}/debian/
 RUN cd QGIS-${QGIS_VERSION} && touch debian/*.in && make -f debian/rules
 RUN (export DEBIAN_FRONTEND=noninteractive; cd QGIS-${QGIS_VERSION} && yes | mk-build-deps --install --remove debian/control)
 RUN cd QGIS-${QGIS_VERSION} && dpkg-buildpackage -us -uc

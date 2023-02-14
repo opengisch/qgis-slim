@@ -14,7 +14,7 @@ jobs:
       matrix:
         version:
         - 'ltr'
-#        - 'stable'
+        - 'stable'
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
@@ -50,7 +50,9 @@ jobs:
         context: .
         push: false
         target: builder
-        build-args: QGIS_VERSION=${{ env.QGIS_VERSION_TAG }}
+        build-args: |
+          QGIS_VERSION=${{ env.QGIS_VERSION_TAG }}
+          QGIS_VERSION_SHORT=${{ env.QGIS_VERSION_SHORT }}
         cache-to: type=local,dest=cache
 
     - name: Build and push release
@@ -60,7 +62,9 @@ jobs:
         context: .
         push: true
         target: release
-        build-args: QGIS_VERSION=${{ env.QGIS_VERSION_TAG }}
+        build-args: |
+          QGIS_VERSION=${{ env.QGIS_VERSION_TAG }}
+          QGIS_VERSION_SHORT=${{ env.QGIS_VERSION_SHORT }}
         cache-from: type=local,src=cache
         tags: |
           ghcr.io/opengisch/qgis-slim:latest
@@ -75,7 +79,9 @@ jobs:
         context: .
         push: true
         target: debug
-        build-args: QGIS_VERSION=${{ env.QGIS_VERSION_TAG }}
+        build-args: |
+          QGIS_VERSION=${{ env.QGIS_VERSION_TAG }}
+          QGIS_VERSION_SHORT=${{ env.QGIS_VERSION_SHORT }}
         cache-from: type=local,src=cache
         tags: |
           ghcr.io/opengisch/qgis-slim-debug:latest
