@@ -46,6 +46,7 @@ jobs:
 
     - name: Build base
       uses: docker/build-push-action@v3
+      if: env.DO_BUILD == 'true'
       with:
         context: .
         push: false
