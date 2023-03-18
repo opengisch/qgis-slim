@@ -12,9 +12,11 @@ jobs:
   docker:
     strategy:
       matrix:
-        version:
-        - 'ltr'
-        - 'stable'
+        include:
+          - release_line: 'ltr'
+            release_line_suffix: '-ltr'
+          - release_line: 'stable'
+            release_line_suffix: ''
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
@@ -22,7 +24,7 @@ jobs:
 
     - name: Get version details
       run: |
-        python ./scripts/get_latest_qgis_versions.py --release=${{ matrix.version }} --github_token=${{ secrets.GITHUB_TOKEN }} >> $GITHUB_ENV
+        python ./scripts/get_latest_qgis_versions.py --release=${{ matrix.release_line }} --github_token=${{ secrets.GITHUB_TOKEN }} >> $GITHUB_ENV
 
     - name: Check if image is already built
       run: |
@@ -54,6 +56,7 @@ jobs:
         build-args: |
           QGIS_VERSION=${{ env.QGIS_VERSION_TAG }}
           QGIS_VERSION_SHORT=${{ env.QGIS_VERSION_SHORT }}
+          QGIS_RELEASE_LINE_SUFFIX=${{ matrix.release_line_suffix }}
         cache-to: type=local,dest=cache
 
     - name: Build and push release
@@ -66,10 +69,11 @@ jobs:
         build-args: |
           QGIS_VERSION=${{ env.QGIS_VERSION_TAG }}
           QGIS_VERSION_SHORT=${{ env.QGIS_VERSION_SHORT }}
+          QGIS_RELEASE_LINE_SUFFIX=${{ matrix.release_line_suffix }}
         cache-from: type=local,src=cache
         tags: |
           ghcr.io/opengisch/qgis-slim:latest
-          ghcr.io/opengisch/qgis-slim:${{ matrix.version }}
+          ghcr.io/opengisch/qgis-slim:${{ matrix.release_line }}
           ghcr.io/opengisch/qgis-slim:${{ env.QGIS_VERSION_SHORT }}
           ghcr.io/opengisch/qgis-slim:${{ env.QGIS_VERSION_PATCH }}
 
@@ -83,10 +87,11 @@ jobs:
         build-args: |
           QGIS_VERSION=${{ env.QGIS_VERSION_TAG }}
           QGIS_VERSION_SHORT=${{ env.QGIS_VERSION_SHORT }}
+          QGIS_RELEASE_LINE_SUFFIX=${{ matrix.release_line_suffix }}
         cache-from: type=local,src=cache
         tags: |
           ghcr.io/opengisch/qgis-slim-debug:latest
-          ghcr.io/opengisch/qgis-slim-debug:${{ matrix.version }}
+          ghcr.io/opengisch/qgis-slim-debug:${{ matrix.release_line }}
           ghcr.io/opengisch/qgis-slim-debug:${{ env.QGIS_VERSION_SHORT }}
           ghcr.io/opengisch/qgis-slim-debug:${{ env.QGIS_VERSION_PATCH }}
 

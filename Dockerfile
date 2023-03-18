@@ -2,32 +2,22 @@ FROM debian:bullseye-slim AS builder
 
 ARG QGIS_VERSION=final-3_28_1
 ARG QGIS_VERSION_SHORT=3_28
+ARG QGIS_RELEASE_LINE=-ltr
 
-RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get -y install \
-  build-essential \
-  wget \
-  devscripts \
-  equivs \
-  grass-dev \
-  python3-dev
 WORKDIR /src
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get -y install \
+  wget \
+  software-properties-common
 RUN wget https://github.com/qgis/QGIS/archive/refs/tags/${QGIS_VERSION}.tar.gz
+ADD qgis-archive-keyring.gpg /etc/apt/keyrings/qgis-archive-keyring.gpg
+ADD qgis${QGIS_RELEASE_LINE}.sources /etc/apt/sources.list.d/qgis.sources
+ADD debian/rules QGIS-${QGIS_VERSION}/debian/rules
+RUN apt-get update
+RUN apt-get build-dep -y qgis
 RUN tar -xvf ${QGIS_VERSION}.tar.gz
-RUN rm QGIS-${QGIS_VERSION}/debian/control
-COPY debian/* debian-${QGIS_VERSION_SHORT}/* QGIS-${QGIS_VERSION}/debian/
-RUN cd QGIS-${QGIS_VERSION} && touch debian/*.in && make -f debian/rules
-RUN (export DEBIAN_FRONTEND=noninteractive; cd QGIS-${QGIS_VERSION} && yes | mk-build-deps --install --remove debian/control)
-RUN cd QGIS-${QGIS_VERSION} && dpkg-buildpackage -us -uc
-RUN mkdir /src/release && mkdir /src/debug && mv /src/*dbg*.deb /src/debug && mv /src/*.deb /src/release
+RUN cd QGIS-${QGIS_VERSION} && DIST=bullseye dpkg-buildpackage -uc -us -b 
 
-FROM debian:bullseye-slim AS release
-COPY --from=builder /src/release/*.deb /src/
-RUN ls /src/*.deb
-RUN (export DEBIAN_FRONTEND=noninteractive; apt-get update && apt install -y /src/*.deb && rm -rf /var/lib/apt/lists/*)
 
-FROM debian:bullseye-slim AS debug
-COPY --from=builder /src/release/*.deb /src/
-COPY --from=builder /src/debug/*.deb /src/
-RUN ls /src/*.deb
-RUN (export DEBIAN_FRONTEND=noninteractive; apt-get update && apt install -y /src/*.deb && rm -rf /var/lib/apt/lists/*)
+
+
 ENV QT_QPA_PLATFORM offscreen
