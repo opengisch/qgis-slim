@@ -14,9 +14,9 @@ jobs:
       matrix:
         include:
           - release_line: 'ltr'
-            release_line_suffix: '-ltr'
+            debian_repository: 'qgis-ltr'
           - release_line: 'stable'
-            release_line_suffix: ''
+            debian_repository: 'qgis'
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
@@ -56,7 +56,7 @@ jobs:
         build-args: |
           QGIS_VERSION=${{ env.QGIS_VERSION_TAG }}
           QGIS_VERSION_SHORT=${{ env.QGIS_VERSION_SHORT }}
-          QGIS_RELEASE_LINE_SUFFIX=${{ matrix.release_line_suffix }}
+          QGIS_DEBIAN_REPOSITORY=${{ matrix.debian_repository }}
         cache-to: type=local,dest=cache
 
     - name: Build and push release
@@ -69,7 +69,7 @@ jobs:
         build-args: |
           QGIS_VERSION=${{ env.QGIS_VERSION_TAG }}
           QGIS_VERSION_SHORT=${{ env.QGIS_VERSION_SHORT }}
-          QGIS_RELEASE_LINE_SUFFIX=${{ matrix.release_line_suffix }}
+          QGIS_DEBIAN_REPOSITORY=${{ matrix.debian_repository }}
         cache-from: type=local,src=cache
         tags: |
           ghcr.io/opengisch/qgis-slim:latest
@@ -87,7 +87,7 @@ jobs:
         build-args: |
           QGIS_VERSION=${{ env.QGIS_VERSION_TAG }}
           QGIS_VERSION_SHORT=${{ env.QGIS_VERSION_SHORT }}
-          QGIS_RELEASE_LINE_SUFFIX=${{ matrix.release_line_suffix }}
+          QGIS_DEBIAN_REPOSITORY=${{ matrix.debian_repository }}
         cache-from: type=local,src=cache
         tags: |
           ghcr.io/opengisch/qgis-slim-debug:latest
