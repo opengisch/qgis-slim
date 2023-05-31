@@ -2,7 +2,7 @@ FROM debian:bullseye-slim AS builder
 
 ARG QGIS_VERSION=final-3_28_1
 ARG QGIS_VERSION_SHORT=3_28
-ARG QGIS_RELEASE_LINE=-ltr
+ARG QGIS_RELEASE_LINE=
 
 WORKDIR /src
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get -y install \
