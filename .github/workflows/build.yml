@@ -61,7 +61,6 @@ jobs:
       with:
         context: .
         push: true
-        target: release
         build-args: |
           QGIS_VERSION=${{ env.QGIS_VERSION_TAG }}
           QGIS_VERSION_SHORT=${{ env.QGIS_VERSION_SHORT }}
