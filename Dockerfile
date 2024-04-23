@@ -1,4 +1,4 @@
-ARG OS_VERSION=ubuntu:24.04
+ARG OS_VERSION=ubuntu:22.04
 #ARG OS_VERSION=debian:bullseye-slim
 FROM ${OS_VERSION} AS builder
 
@@ -32,6 +32,7 @@ RUN apt-get update && \
         libgdal-dev \
         libgeos-dev \
         libgsl-dev \
+        libpdal-dev \
         libpq-dev \
         libproj-dev \
         libprotobuf-dev \
@@ -58,6 +59,7 @@ RUN apt-get update && \
         ocl-icd-opencl-dev \
         opencl-headers \
         pandoc \
+        pdal \
         pkg-config \
         poppler-utils \
         protobuf-compiler \
@@ -183,6 +185,7 @@ RUN apt-get update && \
         libgeos3.10.2 \
         libgeos-c1v5 \
         libgsl27 \
+        libpdal-base13 \
         libpq5 \
         libproj22 \
         libprotobuf-lite23 \
