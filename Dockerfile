@@ -130,7 +130,7 @@ RUN cmake -B build \
         -D WITH_SERVER=TRUE \
         -D WITH_3D=FALSE && \
     cmake --build build && \
-    DESTDIR=/build/dist --install build
+    DESTDIR=/build/dist cmake --install build
 
 # -----------------------------------------------------------------------------
 
