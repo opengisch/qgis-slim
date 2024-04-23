@@ -71,20 +71,20 @@ jobs:
           ghcr.io/opengisch/qgis-slim:${{ env.QGIS_VERSION_SHORT }}
           ghcr.io/opengisch/qgis-slim:${{ env.QGIS_VERSION_PATCH }}
 
-          #    - name: Build and push debug
-          #      uses: docker/build-push-action@v3
-          #      if: env.DO_BUILD == 'true'
-          #      with:
-          #        context: .
-          #        push: true
-          #        target: debug
-          #        build-args: |
-          #          QGIS_VERSION=${{ env.QGIS_VERSION_TAG }}
-          #          QGIS_VERSION_SHORT=${{ env.QGIS_VERSION_SHORT }}
-          #        cache-from: type=local,src=cache
-          #        tags: |
-          #          ghcr.io/opengisch/qgis-slim-debug:latest
-          #          ghcr.io/opengisch/qgis-slim-debug:${{ matrix.release_line }}
-          #          ghcr.io/opengisch/qgis-slim-debug:${{ env.QGIS_VERSION_SHORT }}
-          #          ghcr.io/opengisch/qgis-slim-debug:${{ env.QGIS_VERSION_PATCH }}
-          #
+#    - name: Build and push debug
+#      uses: docker/build-push-action@v3
+#      if: env.DO_BUILD == 'true'
+#      with:
+#        context: .
+#        push: true
+#        target: debug
+#        build-args: |
+#          QGIS_VERSION=${{ env.QGIS_VERSION_TAG }}
+#          QGIS_VERSION_SHORT=${{ env.QGIS_VERSION_SHORT }}
+#        cache-from: type=local,src=cache
+#        tags: |
+#          ghcr.io/opengisch/qgis-slim-debug:latest
+#          ghcr.io/opengisch/qgis-slim-debug:${{ matrix.release_line }}
+#          ghcr.io/opengisch/qgis-slim-debug:${{ env.QGIS_VERSION_SHORT }}
+#          ghcr.io/opengisch/qgis-slim-debug:${{ env.QGIS_VERSION_PATCH }}
+#
