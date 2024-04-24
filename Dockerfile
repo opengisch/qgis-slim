@@ -15,7 +15,6 @@ RUN apt-get update && \
         build-essential \
         ca-certificates \
         cmake \
-        cmake-curses-gui \
         dh-python \
         doxygen \
         expect \
@@ -119,6 +118,7 @@ RUN git clone --depth 1 https://github.com/qgis/QGIS.git --single-branch --branc
 RUN cmake -B build \
         -S QGIS \
         -G Ninja \
+        -D CMAKE_INSTALL_PREFIX="" \
         -D WITH_ANALYSIS=FALSE \
         -D WITH_DESKTOP=FALSE \
         -D WITH_GRASS7=FALSE \
