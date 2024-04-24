@@ -4,8 +4,8 @@ A containerized version of qgis without any bells and whistles.
 
 Optimized for headless, containerized environments
 
-- Builds on `debian:slim`
-- Does not have any gui or server components included
+- Builds on `ubuntu:22.04`
+- Does not have any gui components included
 
 ## Releases
 
