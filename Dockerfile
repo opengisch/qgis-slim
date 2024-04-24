@@ -201,6 +201,29 @@ RUN apt-get update && \
         libqt5xml5 \
         libspatialindex6 \
         libzip4 \
+        python3-autopep8 \
+        python3-gdal \
+        python3-jinja2 \
+        python3-lxml \
+        python3-mock \
+        python3-nose2 \
+        python3-owslib \
+        python3-plotly \
+        python3-psycopg2 \
+        python3-pygments \
+        python3-pyproj \
+        python3-pyqt5 \
+        python3-pyqt5.qsci \
+        python3-pyqt5.qtmultimedia \
+        python3-pyqt5.qtpositioning \
+        python3-pyqt5.qtserialport \
+        python3-pyqt5.qtsql \
+        python3-pyqt5.qtsvg \
+        python3-pyqt5.qtwebkit \
+        python3-pyqtbuild \
+        python3-sip \
+        python3-termcolor \
+        python3-yaml \
         ocl-icd-libopencl1 && \
     apt-get autoremove -y && \
     apt-get clean && \
