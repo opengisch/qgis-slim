@@ -119,11 +119,11 @@ RUN cmake -B build \
         -S QGIS \
         -G Ninja \
         -D CMAKE_INSTALL_PREFIX="" \
-        -D WITH_ANALYSIS=FALSE \
+        -D WITH_ANALYSIS=TRUE \
         -D WITH_DESKTOP=FALSE \
         -D WITH_GRASS7=FALSE \
         -D WITH_GUI=FALSE \
-        -D WITH_QGIS_PROCESS=FALSE \
+        -D WITH_QGIS_PROCESS=TRUE \
         -D WITH_QT5SERIALPORT=FALSE \
         -D WITH_QTWEBKIT=FALSE \
         -D WITH_STAGED_PLUGINS=FALSE \
