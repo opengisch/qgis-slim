@@ -237,6 +237,9 @@ WORKDIR /data
 
 ENTRYPOINT [ "/tini", "--", "/usr/local/bin/uid_entrypoint.sh" ]
 
+ENV PYTHONPATH="/usr/share/qgis/python/"
+ENV QT_QPA_PLATFORM=offscreen
+
 EXPOSE 5000
 
 CMD [ "/usr/local/bin/run.sh" ]
