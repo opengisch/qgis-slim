@@ -5,6 +5,10 @@ on:
     branches:
       - main
 
+  pull_request:
+    branches:
+      - main
+
   schedule:
     - cron:  '30 5 * * *'
 
@@ -55,9 +59,29 @@ jobs:
           QGIS_VERSION_SHORT=${{ env.QGIS_VERSION_SHORT }}
         cache-to: type=local,dest=cache
 
-    - name: Build and push release
+    - name: Build release
       uses: docker/build-push-action@v3
       if: env.DO_BUILD == 'true'
+      with:
+        context: .
+        push: false
+        build-args: |
+          QGIS_VERSION=${{ env.QGIS_VERSION_TAG }}
+          QGIS_VERSION_SHORT=${{ env.QGIS_VERSION_SHORT }}
+        cache-from: type=local,src=cache
+        tags: |
+          ghcr.io/opengisch/qgis-slim:latest
+          ghcr.io/opengisch/qgis-slim:${{ matrix.release_line }}
+          ghcr.io/opengisch/qgis-slim:${{ env.QGIS_VERSION_SHORT }}
+          ghcr.io/opengisch/qgis-slim:${{ env.QGIS_VERSION_PATCH }}
+
+    - name: Test
+      run: |
+        docker run --rm -it ghcr.io/opengisch/qgis-slim:latest python3 -c 'from qgis.core import QgsApplication; QgsApplication([], False)'
+
+    - name: Push release
+      uses: docker/build-push-action@v3
+      if: env.DO_BUILD == 'true' && github.event_name != 'pull_request'
       with:
         context: .
         push: true
@@ -70,6 +94,7 @@ jobs:
           ghcr.io/opengisch/qgis-slim:${{ matrix.release_line }}
           ghcr.io/opengisch/qgis-slim:${{ env.QGIS_VERSION_SHORT }}
           ghcr.io/opengisch/qgis-slim:${{ env.QGIS_VERSION_PATCH }}
+
 
 #    - name: Build and push debug
 #      uses: docker/build-push-action@v3
