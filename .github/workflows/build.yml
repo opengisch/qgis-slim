@@ -60,11 +60,12 @@ jobs:
         cache-to: type=local,dest=cache
 
     - name: Build release
-      uses: docker/build-push-action@v3
+      uses: docker/build-push-action@v6
       if: env.DO_BUILD == 'true'
       with:
         context: .
         push: false
+        load: true
         build-args: |
           QGIS_VERSION=${{ env.QGIS_VERSION_TAG }}
           QGIS_VERSION_SHORT=${{ env.QGIS_VERSION_SHORT }}
@@ -80,7 +81,7 @@ jobs:
         docker run --rm ghcr.io/opengisch/qgis-slim:latest python3 -c 'from qgis.core import QgsApplication; QgsApplication([], False)'
 
     - name: Push release
-      uses: docker/build-push-action@v3
+      uses: docker/build-push-action@v6
       if: env.DO_BUILD == 'true' && github.event_name != 'pull_request'
       with:
         context: .
