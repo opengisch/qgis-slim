@@ -126,8 +126,8 @@ RUN cmake -B build \
         -D WITH_QTWEBKIT=FALSE \
         -D WITH_STAGED_PLUGINS=FALSE \
         -D WITH_SERVER=TRUE \
-        -D WITH_3D=FALSE && \
-        -D WITH_PDAL=OFF && \
+        -D WITH_3D=FALSE \
+        -D WITH_PDAL=FALSE && \
     cmake --build build && \
     DESTDIR=/build/dist cmake --install build
 
