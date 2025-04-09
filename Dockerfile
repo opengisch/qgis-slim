@@ -31,7 +31,6 @@ RUN apt-get update && \
         libgdal-dev \
         libgeos-dev \
         libgsl-dev \
-        libpdal-dev \
         libpq-dev \
         libproj-dev \
         libprotobuf-dev \
@@ -58,7 +57,6 @@ RUN apt-get update && \
         ocl-icd-opencl-dev \
         opencl-headers \
         pandoc \
-        pdal \
         pkg-config \
         poppler-utils \
         protobuf-compiler \
