@@ -2,8 +2,8 @@ ARG OS_VERSION=ubuntu:24.04
 #ARG OS_VERSION=debian:bullseye-slim
 FROM ${OS_VERSION} AS builder
 
-ARG QGIS_VERSION=final-3_28_15
-ARG QGIS_VERSION_SHORT=3_28
+ARG QGIS_VERSION=final-3_42_1
+ARG QGIS_VERSION_SHORT=3_42
 
 WORKDIR /build
 
@@ -127,6 +127,7 @@ RUN cmake -B build \
         -D WITH_STAGED_PLUGINS=FALSE \
         -D WITH_SERVER=TRUE \
         -D WITH_3D=FALSE && \
+        -D WITH_PDAL=OFF && \
     cmake --build build && \
     DESTDIR=/build/dist cmake --install build
 
@@ -183,7 +184,6 @@ RUN apt-get update && \
         libgeos3.10.2 \
         libgeos-c1v5 \
         libgsl27 \
-        libpdal-base13 \
         libpq5 \
         libproj22 \
         libprotobuf-lite23 \
