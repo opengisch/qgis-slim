@@ -181,13 +181,12 @@ RUN apt-get update && \
         libexiv2-27 \
         libexpat1 \
         libfcgi-bin \
-        libgdal30 \
-        libgeos3.10.2 \
+        libgdal34t64 \
         libgeos-c1v5 \
         libgsl27 \
         libpq5 \
-        libproj22 \
-        libprotobuf-lite23 \
+        libproj25 \
+        libprotobuf-lite32t64 \
         libqca-qt5-2 \
         libqt5concurrent5 \
         libqt5core5a \
