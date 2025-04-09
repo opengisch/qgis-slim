@@ -178,6 +178,7 @@ RUN fc-cache -f -v && \
 RUN apt-get update && \
     apt-get upgrade -y && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y \
+        libdraco8 \
         libexiv2-27 \
         libexpat1 \
         libfcgi-bin \
