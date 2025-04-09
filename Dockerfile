@@ -127,7 +127,8 @@ RUN cmake -B build \
         -D WITH_STAGED_PLUGINS=FALSE \
         -D WITH_SERVER=TRUE \
         -D WITH_3D=FALSE \
-        -D WITH_PDAL=FALSE && \
+        -D WITH_PDAL=FALSE \
+        -D ENABLE_TESTS=TRUE && \
     cmake --build build && \
     DESTDIR=/build/dist cmake --install build
 
@@ -156,15 +157,15 @@ ADD fonts/admin_ch_symbols /usr/share/fonts/truetype/
 ADD fonts/fontawesome /usr/share/fonts/truetype/
 
 RUN fc-cache -f -v && \
-    adduser \
-        --system \
-        --uid 1001 \
-        --gid 0 \
-        --shell /bin/bash \
-        --no-create-home \
-        --disabled-password \
-        --disabled-login \
-        qgis && \
+    useradd \
+      --system \
+      --uid 1001 \
+      --gid 0 \
+      --shell /bin/bash \
+      --no-create-home \
+      --no-user-group \
+      --password '*' \
+      qgis && \
     mkdir -p /data && \
     chown 1001:0 /data && \
     chmod g=u /data && \
