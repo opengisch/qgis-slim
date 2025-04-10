@@ -1,9 +1,9 @@
-ARG OS_VERSION=ubuntu:22.04
+ARG OS_VERSION=ubuntu:24.04
 #ARG OS_VERSION=debian:bullseye-slim
 FROM ${OS_VERSION} AS builder
 
-ARG QGIS_VERSION=final-3_28_15
-ARG QGIS_VERSION_SHORT=3_28
+ARG QGIS_VERSION=final-3_42_1
+ARG QGIS_VERSION_SHORT=3_42
 
 WORKDIR /build
 
@@ -31,7 +31,6 @@ RUN apt-get update && \
         libgdal-dev \
         libgeos-dev \
         libgsl-dev \
-        libpdal-dev \
         libpq-dev \
         libproj-dev \
         libprotobuf-dev \
@@ -58,7 +57,6 @@ RUN apt-get update && \
         ocl-icd-opencl-dev \
         opencl-headers \
         pandoc \
-        pdal \
         pkg-config \
         poppler-utils \
         protobuf-compiler \
@@ -128,7 +126,9 @@ RUN cmake -B build \
         -D WITH_QTWEBKIT=FALSE \
         -D WITH_STAGED_PLUGINS=FALSE \
         -D WITH_SERVER=TRUE \
-        -D WITH_3D=FALSE && \
+        -D WITH_3D=FALSE \
+        -D WITH_PDAL=FALSE \
+        -D ENABLE_TESTS=TRUE && \
     cmake --build build && \
     DESTDIR=/build/dist cmake --install build
 
@@ -157,15 +157,15 @@ ADD fonts/admin_ch_symbols /usr/share/fonts/truetype/
 ADD fonts/fontawesome /usr/share/fonts/truetype/
 
 RUN fc-cache -f -v && \
-    adduser \
-        --system \
-        --uid 1001 \
-        --gid 0 \
-        --shell /bin/bash \
-        --no-create-home \
-        --disabled-password \
-        --disabled-login \
-        qgis && \
+    useradd \
+      --system \
+      --uid 1001 \
+      --gid 0 \
+      --shell /bin/bash \
+      --no-create-home \
+      --no-user-group \
+      --password '*' \
+      qgis && \
     mkdir -p /data && \
     chown 1001:0 /data && \
     chmod g=u /data && \
@@ -178,17 +178,16 @@ RUN fc-cache -f -v && \
 RUN apt-get update && \
     apt-get upgrade -y && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y \
+        libdraco8 \
         libexiv2-27 \
         libexpat1 \
         libfcgi-bin \
-        libgdal30 \
-        libgeos3.10.2 \
+        libgdal34t64 \
         libgeos-c1v5 \
         libgsl27 \
-        libpdal-base13 \
         libpq5 \
-        libproj22 \
-        libprotobuf-lite23 \
+        libproj25 \
+        libprotobuf-lite32t64 \
         libqca-qt5-2 \
         libqt5concurrent5 \
         libqt5core5a \
