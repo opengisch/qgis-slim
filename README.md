@@ -4,7 +4,7 @@ A containerized version of qgis without any bells and whistles.
 
 Optimized for headless, containerized environments
 
-- Builds on `ubuntu:22.04`
+- Builds on `ubuntu:24.04`
 - Does not have any gui components included
 
 ## Releases
