@@ -18,7 +18,8 @@ jobs:
       matrix:
         include:
           - release_line: 'ltr'
-          - release_line: 'stable'
+          # - release_line: 'stable'
+          # TODO: Add Qt6 support
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
