@@ -49,7 +49,7 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Build base
-      uses: docker/build-push-action@v3
+      uses: docker/build-push-action@v7
       if: env.DO_BUILD == 'true'
       with:
         context: .
@@ -61,7 +61,7 @@ jobs:
         cache-to: type=local,dest=cache
 
     - name: Build release
-      uses: docker/build-push-action@v6
+      uses: docker/build-push-action@v7
       if: env.DO_BUILD == 'true'
       with:
         context: .
@@ -82,7 +82,7 @@ jobs:
         docker run --rm ghcr.io/opengisch/qgis-slim:latest python3 -c 'from qgis.core import QgsApplication; QgsApplication([], False)'
 
     - name: Push release
-      uses: docker/build-push-action@v6
+      uses: docker/build-push-action@v7
       if: env.DO_BUILD == 'true' && github.event_name != 'pull_request'
       with:
         context: .
@@ -99,7 +99,7 @@ jobs:
 
 
 #    - name: Build and push debug
-#      uses: docker/build-push-action@v3
+#      uses: docker/build-push-action@v7
 #      if: env.DO_BUILD == 'true'
 #      with:
 #        context: .
