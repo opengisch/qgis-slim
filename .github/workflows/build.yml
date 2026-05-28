@@ -106,6 +106,12 @@ jobs:
           ghcr.io/opengisch/qgis-slim:${{ env.QGIS_VERSION_SHORT }}
           ghcr.io/opengisch/qgis-slim:${{ env.QGIS_VERSION_PATCH }}
 
+    - name: Upload Trivy results
+      if: always()
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: trivy.sarif
+        category: trivy
 
 #    - name: Build and push debug
 #      uses: docker/build-push-action@v7
