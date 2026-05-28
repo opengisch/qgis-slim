@@ -132,6 +132,8 @@ RUN cmake -B build \
     cmake --build build && \
     DESTDIR=/build/dist cmake --install build
 
+RUN rm -rf /build/dist/share/qgis/resources/server
+
 # -----------------------------------------------------------------------------
 
 FROM ${OS_VERSION}
