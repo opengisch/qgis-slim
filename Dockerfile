@@ -173,6 +173,7 @@ RUN --mount=type=cache,target=/var/cache/apt \
         libpq5 \
         libproj25 \
         libprotobuf-lite32t64 \
+        libpython3.13 \
         libqca-qt6-2 \
         libqscintilla2-qt6-15 \
         libqt6core6 \
