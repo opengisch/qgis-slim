@@ -177,15 +177,18 @@ RUN --mount=type=cache,target=/var/cache/apt \
         libqca-qt6-2 \
         libqscintilla2-qt6-15 \
         libqt6core6 \
+        libqt6concurrent6 \
         libqt6gui6 \
         libqt6keychain1 \
         libqt6network6 \
+        libqt6multimedia6 \
         libqt6opengl6 \
         libqt6positioning6 \
         libqt6printsupport6 \
         libqt6serialport6 \
         libqt6sql6 \
         libqt6svg6 \
+        libqt6webenginecore6 \
         libqt6xml6 \
         libzip5 \
         python3-autopep8 \
