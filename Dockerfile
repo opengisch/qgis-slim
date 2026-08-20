@@ -205,17 +205,24 @@ RUN --mount=type=cache,target=/var/cache/apt \
         python3-pyqt6 \
         python3-pyqt6.qsci \
         python3-pyqt6.qtpositioning \
+        python3-pyqt6.qtmultimedia \
         python3-pyqt6.qtserialport \
         python3-pyqt6.qtsvg \
         python3-pyqtbuild \
         python3-termcolor \
         python3-yaml \
-        ocl-icd-libopencl1
+        ocl-icd-libopencl1 \
+        curl
 
 ARG TINI_VERSION=v0.19.0
-ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /tini
-RUN chmod +x /tini
-
+ARG TARGETARCH
+RUN curl -Ls "https://github.com/krallin/tini/releases/download/$TINI_VERSION/tini-$TARGETARCH" -o "tini-$TARGETARCH"  && \
+    echo "93dcc18adc78c65a028a84799ecf8ad40c936fdfc5f2a57b1acda5a8117fa82c  tini-amd64" > "tini-amd64-sha.txt" && \
+    echo "07952557df20bfd2a95f9bef198b445e006171969499a1d361bd9e6f8e5e0e81  tini-arm64" > "tini-arm64-sha.txt" && \
+    sha256sum --quiet -c "tini-${TARGETARCH}-sha.txt" && \
+    chmod +x "tini-$TARGETARCH" && \
+    mv "tini-$TARGETARCH" /tini && \
+    rm -rf /tmp/*
 WORKDIR /data
 
 ENTRYPOINT [ "/tini", "--", "/usr/local/bin/uid_entrypoint.sh" ]
