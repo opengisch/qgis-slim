@@ -1,15 +1,13 @@
-ARG OS_VERSION=debian:trixie-slim
-#ARG OS_VERSION=ubuntu:26.04
+ARG OS_VERSION=ubuntu:24.04
+#ARG OS_VERSION=debian:bullseye-slim
 FROM ${OS_VERSION} AS builder
 
-ARG QGIS_VERSION=final-4_2_0
-ARG QGIS_VERSION_SHORT=4_2
+ARG QGIS_VERSION=final-3_42_1
+ARG QGIS_VERSION_SHORT=3_42
 
 WORKDIR /build
 
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,target=/var/lib/apt,sharing=locked \
-    apt-get update && \
+RUN apt-get update && \
     apt-get upgrade -y && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y \
@@ -36,10 +34,16 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         libpq-dev \
         libproj-dev \
         libprotobuf-dev \
-        libqca-qt6-dev \
-        libqscintilla2-qt6-dev \
-        libqt6opengl6-dev \
-        libqt6svg6-dev \
+        libqca-qt5-2-dev \
+        libqca-qt5-2-plugins \
+        libqscintilla2-qt5-dev \
+        libqt5opengl5-dev \
+        libqt5serialport5-dev \
+        libqt5sql5-sqlite \
+        libqt5svg5-dev \
+        libqt5webkit5-dev \
+        libqt5xmlpatterns5-dev \
+        libqwt-qt5-dev \
         libspatialindex-dev \
         libspatialite-dev \
         libsqlite3-dev \
@@ -56,8 +60,9 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         pkg-config \
         poppler-utils \
         protobuf-compiler \
-        pyqt6-dev-tools \
-        pyqt6.qsci-dev \
+        pyqt5-dev \
+        pyqt5-dev-tools \
+        pyqt5.qsci-dev \
         python3-all-dev \
         python3-autopep8 \
         python3-dev \
@@ -71,22 +76,30 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         python3-psycopg2 \
         python3-pygments \
         python3-pyproj \
-        python3-pyqt6.sip \
+        python3-pyqt5 \
+        python3-pyqt5.qsci \
+        python3-pyqt5.qtmultimedia \
+        python3-pyqt5.qtpositioning \
+        python3-pyqt5.qtserialport \
+        python3-pyqt5.qtsql \
+        python3-pyqt5.qtsvg \
+        python3-pyqt5.qtwebkit \
         python3-pyqtbuild \
+        python3-sip \
         python3-termcolor \
         python3-yaml \
-        qmake6 \
-        qt6-5compat-dev \
-        qt6-base-dev \
-        qt6-base-private-dev \
-        qt6-multimedia-dev \
-        qt6-pdf-dev \
-        qt6-positioning-dev \
-        qt6-serialport-dev \
-        qt6-tools-dev \
-        qt6-tools-dev-tools \
-        qt6-webengine-dev \
-        qtkeychain-qt6-dev \
+        qt3d-assimpsceneimport-plugin \
+        qt3d-defaultgeometryloader-plugin \
+        qt3d-gltfsceneio-plugin \
+        qt3d-scene2d-plugin \
+        qt3d5-dev \
+        qtbase5-dev \
+        qtbase5-private-dev \
+        qtkeychain-qt5-dev \
+        qtmultimedia5-dev \
+        qtpositioning5-dev \
+        qttools5-dev \
+        qttools5-dev-tools \
         sip-tools \
         spawn-fcgi \
         xauth \
@@ -108,9 +121,9 @@ RUN cmake -B build \
         -D WITH_DESKTOP=FALSE \
         -D WITH_GRASS7=FALSE \
         -D WITH_GUI=FALSE \
-        -D WITH_INTERNAL_SPATIALINDEX=true \
         -D WITH_QGIS_PROCESS=TRUE \
-        -D WITH_QTSERIALPORT=FALSE \
+        -D WITH_QT5SERIALPORT=FALSE \
+        -D WITH_QTWEBKIT=FALSE \
         -D WITH_STAGED_PLUGINS=FALSE \
         -D WITH_SERVER=TRUE \
         -D WITH_3D=FALSE \
@@ -126,16 +139,17 @@ RUN rm -rf /build/dist/share/qgis/resources/server
 FROM ${OS_VERSION}
 ENV QGIS_AUTH_DB_DIR_PATH=/auth
 
-RUN --mount=type=cache,target=/var/cache/apt \
-    --mount=type=cache,target=/var/lib/apt \
-    apt-get update && \
+RUN apt-get update && \
     apt-get upgrade -y && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y \
         fontconfig \
         spawn-fcgi \
         xvfb \
         tzdata \
-        bash
+        bash && \
+    apt-get autoremove -y && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/*
 
 COPY --from=builder /build/dist/ /usr
 
@@ -163,9 +177,7 @@ RUN fc-cache -f -v && \
     chgrp 0 /etc/passwd && \
     chmod g=u /etc/passwd
 
-RUN --mount=type=cache,target=/var/cache/apt \
-    --mount=type=cache,target=/var/lib/apt \
-    apt-get update && \
+RUN apt-get update && \
     apt-get upgrade -y && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y \
         libdraco8 \
@@ -178,19 +190,16 @@ RUN --mount=type=cache,target=/var/cache/apt \
         libpq5 \
         libproj25 \
         libprotobuf-lite32t64 \
-        libqca-qt6-2 \
-        libqscintilla2-qt6-15 \
-        libqt6core6 \
-        libqt6gui6 \
-        libqt6keychain1 \
-        libqt6network6 \
-        libqt6opengl6 \
-        libqt6positioning6 \
-        libqt6printsupport6 \
-        libqt6serialport6 \
-        libqt6sql6 \
-        libqt6svg6 \
-        libqt6xml6 \
+        libqca-qt5-2 \
+        libqt5concurrent5 \
+        libqt5core5a \
+        libqt5gui5 \
+        libqt5keychain1 \
+        libqt5positioning5 \
+        libqt5printsupport5 \
+        libqt5serialport5 \
+        libqt5sql5 \
+        libqt5xml5 \
         libspatialindex6 \
         libzip4 \
         python3-autopep8 \
@@ -204,17 +213,22 @@ RUN --mount=type=cache,target=/var/cache/apt \
         python3-psycopg2 \
         python3-pygments \
         python3-pyproj \
-        python3-pyqt6 \
-        python3-pyqt6.qsci \
-        python3-pyqt6.qtpositioning \
-        python3-pyqt6.qtserialport \
-        python3-pyqt6.qtsql \
-        python3-pyqt6.qtsvg \
+        python3-pyqt5 \
+        python3-pyqt5.qsci \
+        python3-pyqt5.qtmultimedia \
+        python3-pyqt5.qtpositioning \
+        python3-pyqt5.qtserialport \
+        python3-pyqt5.qtsql \
+        python3-pyqt5.qtsvg \
+        python3-pyqt5.qtwebkit \
         python3-pyqtbuild \
         python3-sip \
         python3-termcolor \
         python3-yaml \
-        ocl-icd-libopencl1
+        ocl-icd-libopencl1 && \
+    apt-get autoremove -y && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/*
 
 ARG TINI_VERSION=v0.19.0
 ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /tini
