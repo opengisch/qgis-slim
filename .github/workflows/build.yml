@@ -18,8 +18,7 @@ jobs:
       matrix:
         include:
           - release_line: 'ltr'
-          # - release_line: 'stable'
-          # TODO: Add Qt6 support
+          - release_line: 'stable'
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
@@ -28,6 +27,16 @@ jobs:
     - name: Get version details
       run: |
         python ./scripts/get_latest_qgis_versions.py --release=${{ matrix.release_line }} --github_token=${{ secrets.GITHUB_TOKEN }} >> $GITHUB_ENV
+
+    - name: Derive QGIS major version for dependencies
+      run: |
+        QGIS_MAJOR_VERSION=${QGIS_VERSION_SHORT%%.*}
+        echo "QGIS_MAJOR_VERSION=$QGIS_MAJOR_VERSION" >> $GITHUB_ENV
+        if [ "$QGIS_MAJOR_VERSION" -ge 4 ]; then
+          echo "DOCKERFILE_PATH=Dockerfile" >> $GITHUB_ENV
+        else
+          echo "DOCKERFILE_PATH=Dockerfile.qt5" >> $GITHUB_ENV
+        fi
 
     - name: Check if image is already built
       run: |
@@ -41,6 +50,9 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v4
 
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v3
+
     - name: Login to Docker Registry
       uses: docker/login-action@v4
       with:
@@ -53,6 +65,7 @@ jobs:
       if: env.DO_BUILD == 'true'
       with:
         context: .
+        file: ./${{ env.DOCKERFILE_PATH }}
         push: false
         target: builder
         build-args: |
@@ -65,8 +78,10 @@ jobs:
       if: env.DO_BUILD == 'true'
       with:
         context: .
+        file: ./${{ env.DOCKERFILE_PATH }}
         push: false
         load: true
+        platforms: linux/amd64
         build-args: |
           QGIS_VERSION=${{ env.QGIS_VERSION_TAG }}
           QGIS_VERSION_SHORT=${{ env.QGIS_VERSION_SHORT }}
@@ -95,7 +110,9 @@ jobs:
       if: env.DO_BUILD == 'true' && github.event_name != 'pull_request'
       with:
         context: .
+        file: ./${{ env.DOCKERFILE_PATH }}
         push: true
+        platforms: linux/amd64,linux/arm64
         build-args: |
           QGIS_VERSION=${{ env.QGIS_VERSION_TAG }}
           QGIS_VERSION_SHORT=${{ env.QGIS_VERSION_SHORT }}
