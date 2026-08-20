@@ -29,7 +29,6 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         libdraco-dev \
         libexiv2-dev \
         libexpat1-dev \
-        libfcgi-dev \
         libgdal-dev \
         libgeos-dev \
         libgsl-dev \
@@ -88,7 +87,6 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         qt6-webengine-dev \
         qtkeychain-qt6-dev \
         sip-tools \
-        spawn-fcgi \
         xauth \
         xfonts-100dpi \
         xfonts-75dpi \
@@ -112,7 +110,7 @@ RUN cmake -B build \
         -D WITH_QGIS_PROCESS=TRUE \
         -D WITH_QTSERIALPORT=FALSE \
         -D WITH_STAGED_PLUGINS=FALSE \
-        -D WITH_SERVER=TRUE \
+        -D WITH_SERVER=FALSE \
         -D WITH_3D=FALSE \
         -D WITH_PDAL=FALSE \
         -D ENABLE_TESTS=FALSE && \
@@ -132,7 +130,6 @@ RUN --mount=type=cache,target=/var/cache/apt \
     apt-get upgrade -y && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y \
         fontconfig \
-        spawn-fcgi \
         xvfb \
         tzdata \
         bash
@@ -171,7 +168,6 @@ RUN --mount=type=cache,target=/var/cache/apt \
         libdraco8 \
         libexiv2-28 \
         libexpat1 \
-        libfcgi-bin \
         libgeos-c1v5 \
         libgsl28 \
         libpq5 \
