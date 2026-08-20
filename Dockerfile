@@ -115,7 +115,7 @@ RUN cmake -B build \
         -D WITH_SERVER=TRUE \
         -D WITH_3D=FALSE \
         -D WITH_PDAL=FALSE \
-        -D ENABLE_TESTS=TRUE && \
+        -D ENABLE_TESTS=FALSE && \
     cmake --build build && \
     DESTDIR=/build/dist cmake --install build
 
@@ -169,12 +169,11 @@ RUN --mount=type=cache,target=/var/cache/apt \
     apt-get upgrade -y && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y \
         libdraco8 \
-        libexiv2-27 \
+        libexiv2-28 \
         libexpat1 \
         libfcgi-bin \
-        libgdal34t64 \
         libgeos-c1v5 \
-        libgsl27 \
+        libgsl28 \
         libpq5 \
         libproj25 \
         libprotobuf-lite32t64 \
@@ -191,8 +190,7 @@ RUN --mount=type=cache,target=/var/cache/apt \
         libqt6sql6 \
         libqt6svg6 \
         libqt6xml6 \
-        libspatialindex6 \
-        libzip4 \
+        libzip5 \
         python3-autopep8 \
         python3-gdal \
         python3-jinja2 \
@@ -208,10 +206,8 @@ RUN --mount=type=cache,target=/var/cache/apt \
         python3-pyqt6.qsci \
         python3-pyqt6.qtpositioning \
         python3-pyqt6.qtserialport \
-        python3-pyqt6.qtsql \
         python3-pyqt6.qtsvg \
         python3-pyqtbuild \
-        python3-sip \
         python3-termcolor \
         python3-yaml \
         ocl-icd-libopencl1
