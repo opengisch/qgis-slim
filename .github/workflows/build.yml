@@ -13,137 +13,108 @@ on:
     - cron:  '30 5 * * *'
 
 jobs:
-  docker:
-    strategy:
-      matrix:
-        include:
-          - release_line: 'ltr'
-          - release_line: 'stable'
+  prepare:
     runs-on: ubuntu-latest
+    outputs:
+      build_matrix: ${{ steps.prepare.outputs.build_matrix }}
+      has_builds: ${{ steps.prepare.outputs.has_builds }}
     steps:
     - name: Checkout
       uses: actions/checkout@v7
 
-    - name: Get version details
+    - name: Install Python dependencies
       run: |
-        python ./scripts/get_latest_qgis_versions.py --release=${{ matrix.release_line }} --github_token=${{ secrets.GITHUB_TOKEN }} >> $GITHUB_ENV
+        python -m pip install click requests
 
-    - name: Derive QGIS major version for dependencies
+    - name: Build matrix input
+      id: prepare
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        QGIS_MAJOR_VERSION=${QGIS_VERSION_SHORT%%.*}
-        echo "QGIS_MAJOR_VERSION=$QGIS_MAJOR_VERSION" >> $GITHUB_ENV
-        if [ "$QGIS_MAJOR_VERSION" -ge 4 ]; then
-          echo "DOCKERFILE_PATH=Dockerfile" >> $GITHUB_ENV
-        else
-          echo "DOCKERFILE_PATH=Dockerfile.qt5" >> $GITHUB_ENV
-        fi
+        set -euo pipefail
 
-    - name: Check if image is already built
-      run: |
-        TOKEN=$(curl -u $GITHUB_ACTOR:${{ secrets.GITHUB_TOKEN }} https://ghcr.io/token\?scope\="qgis-slim:qgis-slim/qgis-slim:pull" | jq -r .token)
-        if curl --head --fail -H "Authorization: Bearer $TOKEN" https://ghcr.io/v2/opengisch/qgis-slim/manifests/${{ env.QGIS_VERSION_PATCH }}; then
-          echo "DO_BUILD=false" >> $GITHUB_ENV
-        else
-          echo "DO_BUILD=true" >> $GITHUB_ENV
-        fi
+        include_json='[]'
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v4
+        for release_line in ltr stable; do
+          qgis_version_short=''
+          qgis_version_patch=''
+          qgis_version_tag=''
 
-    - name: Set up QEMU
-      uses: docker/setup-qemu-action@v3
+          while IFS='=' read -r key value; do
+            case "$key" in
+              QGIS_VERSION_SHORT) qgis_version_short="$value" ;;
+              QGIS_VERSION_PATCH) qgis_version_patch="$value" ;;
+              QGIS_VERSION_TAG) qgis_version_tag="$value" ;;
+            esac
+          done < <(python ./scripts/get_latest_qgis_versions.py --release="$release_line" --github_token="$GITHUB_TOKEN")
 
-    - name: Login to Docker Registry
-      uses: docker/login-action@v4
-      with:
-        registry: ghcr.io
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
+          qgis_major_version="${qgis_version_short%%.*}"
+          if [ "$qgis_major_version" -ge 4 ]; then
+            dockerfile_path='Dockerfile'
+          else
+            dockerfile_path='Dockerfile.qt5'
+          fi
 
-    - name: Build base
-      uses: docker/build-push-action@v7
-      if: env.DO_BUILD == 'true'
-      with:
-        context: .
-        file: ./${{ env.DOCKERFILE_PATH }}
-        push: false
-        target: builder
-        build-args: |
-          QGIS_VERSION=${{ env.QGIS_VERSION_TAG }}
-          QGIS_VERSION_SHORT=${{ env.QGIS_VERSION_SHORT }}
-        cache-to: type=local,dest=cache
+          token=$(curl -fsSL -u "$GITHUB_ACTOR:$GITHUB_TOKEN" "https://ghcr.io/token?scope=repository:opengisch/qgis-slim:pull" | jq -r '.token')
+          if curl -fsSI -H "Authorization: Bearer $token" -H "Accept: application/vnd.oci.image.index.v1+json" "https://ghcr.io/v2/opengisch/qgis-slim/manifests/$qgis_version_patch" > /dev/null; then
+            echo "Skipping $release_line ($qgis_version_patch): image already exists"
+            continue
+          fi
 
-    - name: Build release
-      uses: docker/build-push-action@v7
-      if: env.DO_BUILD == 'true'
-      with:
-        context: .
-        file: ./${{ env.DOCKERFILE_PATH }}
-        push: false
-        load: true
-        platforms: linux/amd64
-        build-args: |
-          QGIS_VERSION=${{ env.QGIS_VERSION_TAG }}
-          QGIS_VERSION_SHORT=${{ env.QGIS_VERSION_SHORT }}
-        cache-from: type=local,src=cache
-        tags: |
-          ghcr.io/opengisch/qgis-slim:latest
-          ghcr.io/opengisch/qgis-slim:${{ matrix.release_line }}
-          ghcr.io/opengisch/qgis-slim:${{ env.QGIS_VERSION_SHORT }}
-          ghcr.io/opengisch/qgis-slim:${{ env.QGIS_VERSION_PATCH }}
+          include_json=$(jq -c \
+            --arg release_line "$release_line" \
+            --arg qgis_version_short "$qgis_version_short" \
+            --arg qgis_version_patch "$qgis_version_patch" \
+            --arg qgis_version_tag "$qgis_version_tag" \
+            --arg dockerfile_path "$dockerfile_path" \
+            '. + [{
+              release_line: $release_line,
+              qgis_version_short: $qgis_version_short,
+              qgis_version_patch: $qgis_version_patch,
+              qgis_version_tag: $qgis_version_tag,
+              dockerfile_path: $dockerfile_path
+            }]' <<<"$include_json")
+        done
 
-    - name: Test
-      run: |
-        docker run --rm ghcr.io/opengisch/qgis-slim:latest python3 -c 'from qgis.core import QgsApplication; QgsApplication([], False)'
+        build_matrix=$(jq -cn -c --argjson include "$include_json" '{include: $include}')
+        has_builds=$(jq -r 'if (.include | length) > 0 then "true" else "false" end' <<<"$build_matrix")
 
-    - name: Scan with Trivy
-      uses: aquasecurity/trivy-action@v0.36.0
-      with:
-        image-ref: ghcr.io/opengisch/qgis-slim:latest
-        format: sarif
-        output: trivy.sarif
-        severity: CRITICAL,HIGH
-        exit-code: 0
+        echo "build_matrix=$build_matrix" >> "$GITHUB_OUTPUT"
+        echo "has_builds=$has_builds" >> "$GITHUB_OUTPUT"
 
-    - name: Push release
-      uses: docker/build-push-action@v7
-      if: env.DO_BUILD == 'true' && github.event_name != 'pull_request'
-      with:
-        context: .
-        file: ./${{ env.DOCKERFILE_PATH }}
-        push: true
-        platforms: linux/amd64,linux/arm64
-        build-args: |
-          QGIS_VERSION=${{ env.QGIS_VERSION_TAG }}
-          QGIS_VERSION_SHORT=${{ env.QGIS_VERSION_SHORT }}
-        cache-from: type=local,src=cache
-        tags: |
-          ghcr.io/opengisch/qgis-slim:latest
-          ghcr.io/opengisch/qgis-slim:${{ matrix.release_line }}
-          ghcr.io/opengisch/qgis-slim:${{ env.QGIS_VERSION_SHORT }}
-          ghcr.io/opengisch/qgis-slim:${{ env.QGIS_VERSION_PATCH }}
-
-    - name: Upload Trivy results
-      if: always()
-      uses: github/codeql-action/upload-sarif@v3
-      with:
-        sarif_file: trivy.sarif
-        category: trivy
-
-#    - name: Build and push debug
-#      uses: docker/build-push-action@v7
-#      if: env.DO_BUILD == 'true'
-#      with:
-#        context: .
-#        push: true
-#        target: debug
-#        build-args: |
-#          QGIS_VERSION=${{ env.QGIS_VERSION_TAG }}
-#          QGIS_VERSION_SHORT=${{ env.QGIS_VERSION_SHORT }}
-#        cache-from: type=local,src=cache
-#        tags: |
-#          ghcr.io/opengisch/qgis-slim-debug:latest
-#          ghcr.io/opengisch/qgis-slim-debug:${{ matrix.release_line }}
-#          ghcr.io/opengisch/qgis-slim-debug:${{ env.QGIS_VERSION_SHORT }}
-#          ghcr.io/opengisch/qgis-slim-debug:${{ env.QGIS_VERSION_PATCH }}
-#
+  build-docker-image:
+    needs: prepare
+    if: needs.prepare.outputs.has_builds == 'true'
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.prepare.outputs.build_matrix) }}
+    uses: docker/github-builder/.github/workflows/build.yml@v1
+    permissions:
+      contents: read
+      id-token: write
+      packages: write
+    with:
+      output: image
+      push: ${{ github.event_name != 'pull_request' }}
+      context: .
+      file: ${{ matrix.dockerfile_path }}
+      platforms: linux/amd64,linux/arm64
+      runner: |
+        default=ubuntu-26.04
+        linux/arm64=ubuntu-26.04-arm
+      cache: true
+      build-args: |
+        QGIS_VERSION=${{ matrix.qgis_version_tag }}
+        QGIS_VERSION_SHORT=${{ matrix.qgis_version_short }}
+      meta-images: |
+        ghcr.io/opengisch/qgis-slim
+      meta-tags: |
+        type=raw,value=${{ matrix.release_line == 'ltr' && 'latest-ltr' || 'latest' }}
+        type=raw,value=${{ matrix.release_line }}
+        type=raw,value=${{ matrix.qgis_version_short }}
+        type=raw,value=${{ matrix.qgis_version_patch }}
+    secrets:
+      registry-auths: |
+        - registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
